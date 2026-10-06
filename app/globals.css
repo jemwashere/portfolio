@@ -1,0 +1,314 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   THEME TOKENS
+   Light is the default (:root); the `dark` class on <html> swaps every value.
+   Tailwind exposes them as bg-base, bg-card, text-primary, text-muted,
+   text-faint and border-subtle (see tailwind.config.ts).
+   The accent comes from the single token in tailwind.config.ts.
+   ========================================================================== */
+:root {
+  --bg-base: #fafafa;
+  --bg-card: #ffffff;
+  --text-primary: #0a0a0a;
+  --text-muted: #52525b;
+  --text-faint: #78716c; /* warm gray for labels */
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --accent: theme("colors.accent.500");
+  --accent-fg: theme("colors.accent.600");
+  --glow: theme("colors.accent.500 / 10%");
+  --kanji: rgba(0, 0, 0, 0.045);
+  --grid-line: rgba(0, 0, 0, 0.05);
+  --gear-from: #f4f4f5; /* light "brushed steel" gears */
+  --gear-to: #d4d4d8;
+  color-scheme: light;
+}
+
+.dark {
+  --bg-base: #0a0a0a;
+  --bg-card: #111114;
+  --text-primary: #f5f5f5;
+  --text-muted: #a1a1aa;
+  --text-faint: #7c7c85;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --accent: theme("colors.accent.500");
+  --accent-fg: theme("colors.accent.500");
+  --glow: theme("colors.accent.500 / 18%");
+  --kanji: rgba(255, 255, 255, 0.035);
+  --grid-line: rgba(255, 255, 255, 0.035);
+  --gear-from: #1a1a1d; /* dark metal gears */
+  --gear-to: #0a0a0a;
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   KEYFRAMES
+   ========================================================================== */
+
+/* Scroll-in: content rises 40px while fading in (applied by <Reveal>). */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Skill pills pop in one after another once their card is visible. */
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Typewriter caret: hard on/off like a terminal cursor. */
+@keyframes blink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Gentle hover-in-place for particle dots. */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-14px); }
+}
+
+/* Full turn: used by the gears and the dashed HUD ring. */
+@keyframes spinSlow {
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   BASE
+   ========================================================================== */
+@layer base {
+  html {
+    scroll-behavior: smooth;  /* anchor links glide instead of jump */
+    scroll-padding-top: 5rem; /* keep headings clear of the fixed navbar */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-base text-muted antialiased transition-colors duration-300;
+  }
+
+  ::selection {
+    background: theme("colors.accent.500 / 35%");
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  * { scrollbar-width: thin; scrollbar-color: #3f3f46 transparent; }
+  *:hover { scrollbar-color: theme("colors.accent.500 / 50%") transparent; }
+}
+
+/* ==========================================================================
+   COMPONENTS
+   ========================================================================== */
+@layer components {
+  /* Faint kanji numerals (零 壱 弐 参 肆 伍) behind section headings */
+  .kanji {
+    @apply pointer-events-none select-none font-jp font-black leading-none;
+    color: var(--kanji);
+  }
+
+  /* Tech-tag pill: accent-soft fill, hairline ring */
+  .tag {
+    @apply inline-flex items-center rounded-full bg-accent-500/[0.12] px-2.5 py-1 font-mono text-[11px] font-medium text-accent-700 ring-1 ring-inset ring-accent-500/20 dark:text-accent-300;
+  }
+
+  /* Skill pill: neutral by default, scales up + glows red on hover */
+  .skill-pill {
+    @apply inline-flex min-h-[32px] cursor-default items-center rounded-full border border-subtle bg-base px-3 font-mono text-xs text-primary transition-all duration-300 ease-out hover:scale-110 hover:border-accent-500 hover:text-accent-fg hover:shadow-glow-sm;
+  }
+
+  /* --- Angular "anime UI" cut corners ------------------------------------
+     Top-right and bottom-left corners sliced off with clip-path.
+     Change the size per element with `[--cut:20px]`.                       */
+  .cut {
+    --cut: 14px;
+    clip-path: polygon(
+      0 0,
+      calc(100% - var(--cut)) 0,
+      100% var(--cut),
+      100% 100%,
+      var(--cut) 100%,
+      0 calc(100% - var(--cut))
+    );
+  }
+
+  /* --- Hairline frame that turns red on hover ----------------------------
+     clip-path also clips CSS borders, so the "border" is a 1px-padded outer
+     layer whose background peeks around a clipped inner surface:
+       <div class="frame cut"><div class="cut bg-card">…</div></div>
+     The glow is a `drop-shadow` on an *unclipped* ancestor
+     (box-shadow would be cut off by clip-path).                            */
+  .frame {
+    @apply p-px transition-colors duration-300;
+    background-color: var(--border-subtle);
+  }
+  .group[data-open="true"] .frame,
+  .group:has(:focus-visible) .frame {
+    background-color: theme("colors.accent.500 / 70%");
+  }
+  @media (hover: hover) {
+    .group:hover .frame { background-color: theme("colors.accent.500 / 70%"); }
+  }
+
+  /* --- Buttons -------------------------------------------------------------
+     Slanted via skew (not clip-path) so the box-shadow glow isn't clipped.
+     Wrap the label in <span class="btn-label"> to un-skew the text.        */
+  .btn {
+    @apply relative inline-flex min-h-[44px] -skew-x-12 items-center justify-center gap-2 px-6 font-mono text-sm font-semibold uppercase tracking-wider transition-all duration-300 ease-out;
+  }
+  .btn-label { @apply inline-flex skew-x-12 items-center gap-2; }
+  .btn-sm { @apply min-h-[40px] px-4 text-xs; }
+
+  /* Filled: brightens, glows (0 0 24px accent/60%) and scales on hover */
+  .btn-primary {
+    @apply bg-accent-600 text-white hover:scale-105 hover:bg-accent-500 hover:shadow-glow focus-visible:shadow-glow;
+  }
+  /* Outlined: hairline accent border that floods with accent on hover */
+  .btn-outline {
+    @apply border border-accent-500/60 text-accent-fg hover:scale-105 hover:border-accent-500 hover:bg-accent-500 hover:text-white hover:shadow-glow;
+  }
+
+  /* --- Navbar link: accent underline grows out from the center ----------- */
+  .nav-link {
+    @apply relative inline-flex min-h-[44px] items-center px-3 font-mono text-[13px] tracking-wide text-muted transition-colors duration-300 hover:text-primary;
+  }
+  .nav-link::after {
+    content: "";
+    @apply absolute bottom-2 left-1/2 h-px w-0 -translate-x-1/2 bg-accent-500 shadow-glow-sm transition-all duration-300 ease-out;
+  }
+  .nav-link:hover::after,
+  .nav-link.is-active::after { width: calc(100% - 1.5rem); }
+  .nav-link.is-active { @apply text-primary; }
+
+  /* --- Section accent bar: short red slash fading out -------------------- */
+  .accent-bar {
+    @apply h-[3px] w-20 -skew-x-[30deg] bg-gradient-to-r from-accent-500 via-accent-500/60 to-transparent;
+  }
+
+  /* ========================================================================
+     EXPAND-ON-HOVER (Education + Projects)
+     `height: auto` can't be animated and max-height needs a magic number, so
+     we animate grid-template-rows 0fr → 1fr: the single row grows to exactly
+     the content's natural height.
+
+       <div class="expandable">   ← grid container (animated)
+         <div>                    ← the one row; must be allowed to shrink
+           …hidden details…
+         </div>
+       </div>
+
+     Opens when the parent `.group` is hovered (real pointers only), contains
+     keyboard focus, or has data-open="true" (set by a tap/click).           */
+  .expandable {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 400ms ease-out,
+      opacity 300ms ease-out;
+  }
+  .expandable > * {
+    min-height: 0;    /* lets the row collapse below its content size */
+    overflow: hidden; /* hides the content while collapsed */
+  }
+  .group[data-open="true"] .expandable,
+  .group:has(:focus-visible) .expandable {
+    grid-template-rows: 1fr;
+    opacity: 1;
+  }
+  @media (hover: hover) {
+    .group:hover .expandable { grid-template-rows: 1fr; opacity: 1; }
+  }
+
+  /* Chevron flips 180° whenever its card is expanded */
+  .chevron { transition: transform 400ms ease-out; }
+  .group[data-open="true"] .chevron,
+  .group:has(:focus-visible) .chevron { transform: rotate(180deg); }
+  @media (hover: hover) {
+    .group:hover .chevron { transform: rotate(180deg); }
+  }
+
+  /* ========================================================================
+     GEAR CLUSTER (hero visual, components/GearCluster.tsx)
+     Each gear is nested like this:
+       .gear-expand  → slides outward on hover (translate --dx/--dy)
+       .gear-spin    → always turning slowly (period = --spin)
+       .gear-boost   → extra fast spin, paused until hover
+     Stacking two rotations (instead of changing animation-duration) means
+     the speed-up is smooth, with no jump in angle.                          */
+  .gear-spin,
+  .gear-boost {
+    transform-box: fill-box;   /* rotate around the gear's own center… */
+    transform-origin: center;  /* …not the SVG's top-left corner */
+    animation: spinSlow linear infinite;
+  }
+  .gear-spin  { animation-duration: var(--spin); }
+  .gear-boost { animation-duration: calc(var(--spin) / 4); animation-play-state: paused; }
+  .gear-ccw .gear-spin,
+  .gear-ccw .gear-boost { animation-direction: reverse; } /* meshing gears turn opposite ways */
+
+  .gear-expand { transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1); }
+
+  .gear-body {
+    fill: url(#gear-metal);
+    stroke: theme("colors.accent.500 / 50%");
+    stroke-width: 1.5;
+    transition: stroke 400ms ease-out, filter 400ms ease-out;
+  }
+
+  .gear-cluster:hover .gear-boost { animation-play-state: running; }
+  .gear-cluster:hover .gear-expand { transform: translate(var(--dx), var(--dy)); }
+  .gear-cluster:hover .gear-body {
+    stroke: theme("colors.accent.500 / 90%");
+    filter: drop-shadow(0 0 6px theme("colors.accent.500 / 60%"));
+  }
+
+  /* --- Background textures ---------------------------------------------- */
+
+  /* Faint anime HUD grid that fades out toward the edges */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 30%, transparent 75%);
+  }
+
+  /* Soft red radial glow (hero / section corners) */
+  .glow-radial {
+    background: radial-gradient(circle at center, var(--glow), transparent 65%);
+  }
+
+  /* Film grain + scanlines over the whole page at 3%: felt, not seen */
+  .grain {
+    @apply pointer-events-none fixed inset-0 z-[60] opacity-[0.03];
+    background-image:
+      repeating-linear-gradient(to bottom, #fff 0 1px, transparent 1px 3px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/* ==========================================================================
+   ACCESSIBILITY: respect "reduce motion". Everything appears instantly
+   and the gears stop turning.
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .gear-spin,
+  .gear-boost { animation: none !important; }
+}
